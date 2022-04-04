@@ -66,6 +66,7 @@ if (calib >= 1) {
        // Serial.println("CRC error: " + String(crc) + " / "+ String(response[8]));
         oled.begin(&Adafruit128x32, I2C_ADDRESS);
         oled.set400kHz();
+        oled.setContrast(0);
         oled.setFont(ZevvPeep8x16);
         oled.println("Sensor CRC error");
         oled.println("Reseting...");
@@ -80,12 +81,14 @@ if (calib >= 1) {
     if (ppm <= 200 || ppm > 6000) {
         oled.begin(&Adafruit128x32, I2C_ADDRESS);
         oled.set400kHz();
+        oled.setContrast(0);
         oled.setFont(ZevvPeep8x16);
         oled.println("CO2: no data");
         delay(10000);          
     } else {
         oled.begin(&Adafruit128x32, I2C_ADDRESS);
         oled.set400kHz();  
+        oled.setContrast(0);
         oled.setFont(Verdana_digits_24);
         oled.setLetterSpacing(8);
 
