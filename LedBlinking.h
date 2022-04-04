@@ -15,9 +15,12 @@ SSD1306AsciiWire oled;
 
 // CO2 sensor:
 SoftwareSerial mySerial(2,3); // RX,TX  
+
+// Autocalibration setup
 int calib = 0;  // set autocalibration on (1) or off (0)  
 byte calibon[9] = {0xff, 0x01, 0x79, 0xA0, 0x00, 0x00, 0x00, 0x00}; //autocalibration on command
 byte caliboff[9] = {0xff, 0x01, 0x79, 0x00, 0x00, 0x00, 0x00, 0x00}; //autocalibration off command
+
 byte cmd[9] = {0xFF,0x01,0x86,0x00,0x00,0x00,0x00,0x00,0x79}; 
 unsigned char response[9];
 
@@ -44,7 +47,7 @@ long t = 0;
 void loop() 
 {
   
-if (calib = 1) { 
+if (calib >= 1) { 
   mySerial.write(calibon, 9);
 } else {
   mySerial.write(caliboff, 9);
@@ -91,7 +94,7 @@ if (calib = 1) {
 
     if (ppm < 1000) {
         oled.setCursor((128-size)/4, 1);
-          if (calib = 1) {
+          if (calib >= 1) {
               oled.setFont(ZevvPeep8x16);
               oled.setLetterSpacing(20);
               oled.println(String(ppm));
@@ -102,7 +105,7 @@ if (calib = 1) {
           }
     } else {
         oled.setCursor((128-size)/5, 1);
-          if (calib = 1) {
+          if (calib >= 1) {
               oled.setFont(ZevvPeep8x16);
               oled.setLetterSpacing(20);
               oled.println(String(ppm));
