@@ -10,21 +10,19 @@
 #define I2C_ADDRESS 0x3C
 #define sice
 #define LED_PIN 9
-//#define led_int
 
 SSD1306AsciiWire oled;
 
-//int brightness = 0;    // уставливаем начально значение яркости
-//int fadeAmount = 5;    // шаг приращения/убывания яркости
-
-
 // CO2 sensor:
-SoftwareSerial mySerial(2,3); // RX,TX
+SoftwareSerial mySerial(2,3); // RX,TX  
+int calib = 0;  // set autocalibration on (1) or off (0)  
+byte calibon[9] = {0xff, 0x01, 0x79, 0xA0, 0x00, 0x00, 0x00, 0x00}; //autocalibration on command
+byte caliboff[9] = {0xff, 0x01, 0x79, 0x00, 0x00, 0x00, 0x00, 0x00}; //autocalibration off command
 byte cmd[9] = {0xFF,0x01,0x86,0x00,0x00,0x00,0x00,0x00,0x79}; 
 unsigned char response[9];
 
-
 void setup() {
+  
   // Serial
   Serial.begin(9600);
   mySerial.begin(9600);
@@ -36,17 +34,21 @@ void setup() {
   oled.setFont(ZevvPeep8x16);
  
   oled.clear();  
- 
   oled.println("   CO2 MONITOR");
   oled.println("Sviridov AV 2022");
-  delay(7000); 
-
+  delay(5000); 
 }
 
 long t = 0;
 
 void loop() 
 {
+  
+if (calib = 1) { 
+  mySerial.write(calibon, 9);
+} else {
+  mySerial.write(caliboff, 9);
+}
   mySerial.write(cmd, 9);
   memset(response, 0, 9);
   mySerial.readBytes(response, 9);
@@ -57,94 +59,98 @@ void loop()
   crc++;
 
   oled.clear();  
-  if ( !(response[0] == 0xFF && response[1] == 0x86 && response[8] == crc) ) {
-        Serial.println("CRC error: " + String(crc) + " / "+ String(response[8]));
+    if ( !(response[0] == 0xFF && response[1] == 0x86 && response[8] == crc) ) {
+       // Serial.println("CRC error: " + String(crc) + " / "+ String(response[8]));
         oled.begin(&Adafruit128x32, I2C_ADDRESS);
         oled.set400kHz();
         oled.setFont(ZevvPeep8x16);
         oled.println("Sensor CRC error");
-  } else {
-    unsigned int responseHigh = (unsigned int) response[2];
-    unsigned int responseLow = (unsigned int) response[3];
-    unsigned int ppm = (256*responseHigh) + responseLow;
+        oled.println("Reseting...");
+        delay(5000);
+        asm volatile("jmp 0x00");
+    } else {
+        unsigned int responseHigh = (unsigned int) response[2];
+        unsigned int responseLow = (unsigned int) response[3];
+        unsigned int ppm = (256*responseHigh) + responseLow;
     Serial.print(String(t)); Serial.print(","); Serial.print(ppm); Serial.println(";");
-    if (ppm <= 400 || ppm > 4900) {
+    
+    if (ppm <= 200 || ppm > 6000) {
         oled.begin(&Adafruit128x32, I2C_ADDRESS);
         oled.set400kHz();
         oled.setFont(ZevvPeep8x16);
-        oled.println("CO2: no data");          
+        oled.println("CO2: no data");
+        delay(10000);          
     } else {
-     // oled.println("CO2: " + String(ppm) + " ppm"); 
-     
-     oled.begin(&Adafruit128x32, I2C_ADDRESS);
-     oled.set400kHz();  
-    // oled.set2X();
-   //oled.invertDisplay(true);
-     oled.setFont(Verdana_digits_24);
-     oled.setLetterSpacing(8);
+        oled.begin(&Adafruit128x32, I2C_ADDRESS);
+        oled.set400kHz();  
+        oled.setFont(Verdana_digits_24);
+        oled.setLetterSpacing(8);
 
-     // center indication 
-  //  if (ppm < 1000) {
-  //    oled.setCursor(2, 1);   
-  //    oled.println(String(ppm));       
-  //  } else {
-  //   oled.setCursor(-1, 1); 
-  //   oled.println(String(ppm));
-  //  }
-                 // center indication 
-                  size_t size = oled.strWidth(ppm);
-               if (ppm < 1000) {
-                  oled.setCursor((128-size)/4, 1);
-                  oled.println(String(ppm));
-               } else {
-                  oled.setCursor((128-size)/5, 1);
-                  oled.println(String(ppm)); 
-               }
+  // center indication 
+        size_t size = oled.strWidth(ppm);
 
-
-     // яркость светодиода
-     if (ppm < 450) {   
-       analogWrite(LED_PIN, 0); 
-      }
-      else if (ppm < 600) {   
-      //  brightness = ppm / 10
-      //  brightness = brightness + fadeAmount
-       analogWrite(LED_PIN, 10);
-      }
-      else if (ppm < 1000) {  
-      //  brightness = ppm / 10
-      //  brightness = brightness + fadeAmount 
-       analogWrite(LED_PIN, 30); 
-      }
-      else if (ppm < 2000) {  
-      //  brightness = ppm / 10
-      //  brightness = brightness + fadeAmount 
-        analogWrite(LED_PIN, 50); 
-      }
-      else {   
-        analogWrite(LED_PIN, 255); 
-             
-     }
-     
-     
- //   oled.setFont(Verdana12_bold);
-  //  if (ppm < 450) {   
-   //    oled.println("Very good");
-   //   }
-   //   else if (ppm < 600) {   
-    //    oled.println("Good");
-   //   }
-   //   else if (ppm < 1000) {   
-   //    oled.println("Acceptable");
-   //   }
-   //   else if (ppm < 2500) {   
-   //     oled.println("Bad");
-   //   }
-   //  else {   
-   //     oled.println("Health risk");
-   //   }
+    if (ppm < 1000) {
+        oled.setCursor((128-size)/4, 1);
+          if (calib = 1) {
+              oled.setFont(ZevvPeep8x16);
+              oled.setLetterSpacing(20);
+              oled.println(String(ppm));
+          } else {
+              oled.setFont(Verdana_digits_24);
+              oled.setLetterSpacing(8);
+              oled.println(String(ppm));
+          }
+    } else {
+        oled.setCursor((128-size)/5, 1);
+          if (calib = 1) {
+              oled.setFont(ZevvPeep8x16);
+              oled.setLetterSpacing(20);
+              oled.println(String(ppm));
+          } else {
+              oled.setFont(Verdana_digits_24);
+              oled.setLetterSpacing(8);
+              oled.println(String(ppm));
+          }
     }
-  }
-  delay(10000);
+
+  // led brightness
+     if (ppm < 950) {   
+        analogWrite(LED_PIN, 0);
+        delay(10000); 
+     } else if (ppm < 1600) {   
+        analogWrite(LED_PIN, 10);
+        delay(10000);
+     } else if (ppm < 2000) {  
+        analogWrite(LED_PIN, 50);
+        delay(10000); 
+     } else if (ppm < 2500) {  
+        analogWrite(LED_PIN, 150);
+        delay(10000); 
+     } else {   
+  // led blinking
+        analogWrite(LED_PIN, 255);
+        delay(1000); 
+        analogWrite(LED_PIN, 0);
+        delay(1000);
+        analogWrite(LED_PIN, 255);
+        delay(1000); 
+        analogWrite(LED_PIN, 0);
+        delay(1000);
+        analogWrite(LED_PIN, 255);
+        delay(1000); 
+        analogWrite(LED_PIN, 0);
+        delay(1000);
+        analogWrite(LED_PIN, 255);
+        delay(1000); 
+        analogWrite(LED_PIN, 0);
+        delay(1000);
+        analogWrite(LED_PIN, 255);
+        delay(1000); 
+        analogWrite(LED_PIN, 0);
+        delay(1000);
+     }
+   }
+ }
+  // delay(10000);
   t += 10;
 }
